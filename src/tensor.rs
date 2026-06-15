@@ -83,9 +83,9 @@ impl Tensor {
     /// Converts a multi-dimensional index into a flat buffer offset.
     fn index_to_offset(&self, index: &[usize]) -> Result<usize, TensorError> {
         if index.len() != self.ndim() {
-            return Err(TensorError::IncompatibleShapes {
-                expected: self.shape.clone(),
-                got: index.to_vec(),
+            return Err(TensorError::RankMismatch {
+                expected: self.ndim(),
+                got: index.len(),
             });
         }
         let mut offset = 0;
@@ -127,8 +127,10 @@ pub enum TensorError {
         index: Vec<usize>,
         shape: Vec<usize>,
     },
-    /// An index or operand shape does not match the expected rank or shape.
-    IncompatibleShapes {
+    /// An index or operand shape does not match the expected rank.
+    RankMismatch { expected: usize, got: usize },
+    /// The shapes are not compatible for element-wise operations.
+    ShapeMismatch {
         expected: Vec<usize>,
         got: Vec<usize>,
     },
@@ -190,9 +192,9 @@ mod tests {
         let err = t.index_to_offset(&[0, 0, 0]).unwrap_err();
         assert_eq!(
             err,
-            TensorError::IncompatibleShapes {
-                expected: vec![2, 3],
-                got: vec![0, 0, 0],
+            TensorError::RankMismatch {
+                expected: 2,
+                got: 3,
             }
         );
     }
