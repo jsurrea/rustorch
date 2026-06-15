@@ -1,11 +1,20 @@
+//! Row-major `f32` tensors with shape validation and multi-dimensional indexing.
+
+/// A dense, row-major tensor of single-precision floats.
 #[derive(Debug, Clone)]
 pub struct Tensor {
+    /// Element buffer in row-major (C) order.
     data: Vec<f32>,
+
+    /// Extent along each dimension, from outermost to innermost.
     shape: Vec<usize>,
+
+    /// Stride for each dimension in row-major layout.
     strides: Vec<usize>,
 }
 
 impl Tensor {
+    /// Creates a tensor from a flat buffer and shape.
     pub fn from_vec(data: Vec<f32>, shape: &[usize]) -> Result<Self, TensorError> {
         let strides = Self::compute_strides_from_shape(shape)?;
         let expected = shape.iter().product();
@@ -22,6 +31,7 @@ impl Tensor {
         })
     }
 
+    /// Creates a tensor filled with zeros.
     pub fn zeros(shape: &[usize]) -> Result<Self, TensorError> {
         let strides = Self::compute_strides_from_shape(shape)?;
         Ok(Self {
@@ -31,6 +41,7 @@ impl Tensor {
         })
     }
 
+    /// Computes row-major strides for `shape`.
     fn compute_strides_from_shape(shape: &[usize]) -> Result<Vec<usize>, TensorError> {
         if shape.is_empty() {
             return Err(TensorError::InvalidShape {
@@ -49,22 +60,27 @@ impl Tensor {
         Ok(strides)
     }
 
+    /// Returns a slice of the underlying data buffer.
     pub fn data(&self) -> &[f32] {
         &self.data
     }
 
+    /// Returns the tensor's shape.
     pub fn shape(&self) -> &[usize] {
         &self.shape
     }
 
+    /// Returns the number of dimensions.
     pub fn ndim(&self) -> usize {
         self.shape.len()
     }
 
+    /// Returns the total number of elements.
     pub fn numel(&self) -> usize {
         self.shape.iter().product()
     }
 
+    /// Converts a multi-dimensional index into a flat buffer offset.
     fn index_to_offset(&self, index: &[usize]) -> Result<usize, TensorError> {
         if index.len() != self.ndim() {
             return Err(TensorError::IncompatibleShapes {
@@ -85,11 +101,13 @@ impl Tensor {
         Ok(offset)
     }
 
+    /// Returns the element at `index`.
     pub fn get(&self, index: &[usize]) -> Result<f32, TensorError> {
         let offset = self.index_to_offset(index)?;
         Ok(self.data[offset])
     }
 
+    /// Writes `value` to the element at `index`.
     pub fn set(&mut self, index: &[usize], value: f32) -> Result<(), TensorError> {
         let offset = self.index_to_offset(index)?;
         self.data[offset] = value;
@@ -97,27 +115,25 @@ impl Tensor {
     }
 }
 
+/// Errors that can occur when creating or indexing a tensor.
 #[derive(Debug, PartialEq, Eq)]
 pub enum TensorError {
-    NumelMismatch {
-        expected: usize,
-        got: usize,
-    },
-    InvalidShape {
-        shape: Vec<usize>,
-    },
+    /// The data length does not match the shape's element count.
+    NumelMismatch { expected: usize, got: usize },
+    /// The shape is empty or contains a zero-sized dimension.
+    InvalidShape { shape: Vec<usize> },
+    /// An index is out of bounds for the tensor's shape.
     IndexOutOfBounds {
         index: Vec<usize>,
         shape: Vec<usize>,
     },
+    /// An index or operand shape does not match the expected rank or shape.
     IncompatibleShapes {
         expected: Vec<usize>,
         got: Vec<usize>,
     },
-    InvalidDimension {
-        dim: i32,
-        ndim: usize,
-    },
+    /// A dimension index is invalid for this tensor's rank.
+    InvalidDimension { dim: i32, ndim: usize },
 }
 
 #[cfg(test)]
