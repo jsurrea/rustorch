@@ -134,8 +134,11 @@ pub enum TensorError {
         expected: Vec<usize>,
         got: Vec<usize>,
     },
-    /// A dimension index is invalid for this tensor's rank.
-    InvalidDimension { dim: i32, ndim: usize },
+    /// The shapes are not compatible for matrix multiplication.
+    MatmulShapeMismatch {
+        a_shape: Vec<usize>,
+        b_shape: Vec<usize>,
+    },
 }
 
 #[cfg(test)]
